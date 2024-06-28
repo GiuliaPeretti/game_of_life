@@ -1,6 +1,7 @@
 import pygame
 from settings import *
 import random
+import time
 
 random.seed(0)
 
@@ -67,7 +68,6 @@ def get_cell_size():
             return(20, 560//20)
 
 def draw_cell(x,y, color):
-    print(x,y)
     x=(x-20)//cell_width
     y=(y-20)//cell_width
     cells[y][x]=1
@@ -78,6 +78,41 @@ def draw_cell(x,y, color):
     pygame.draw.rect(screen, color, (x,y,cell_width-9,cell_width-9))
 
 
+def draw_update(row, col, status):
+    x=col*cell_width+20+5
+    y=row*cell_width+20+5
+    if status==1:
+        color=WHITE
+    else:
+        color=BACKGROUND_COLOR
+    pygame.draw.rect(screen, color, (x,y,cell_width-9,cell_width-9))
+
+
+def update_cells():
+    global cells
+
+    updated_cells=init_cell()
+
+    for row in range(len(cells)):
+        for col in range (len(cells)):
+            alive=0
+            for i in range(0,3):
+                for j in range (0,3):
+                    if (i!=1 or j!=1) and row-1+i>=0 and row-1+i<len(cells) and col-1+j>=0 and col-1+j<len(cells):
+                        if cells[row-1+i][col-1+j]==1:
+                            alive+=1
+            if cells[row][col]==1:
+                if alive<2 or alive>3:
+                    updated_cells[row][col]=0
+                else:
+                    updated_cells[row][col]=1
+            else:
+                if alive==3:
+                    updated_cells[row][col]=1
+            draw_update(row,col, updated_cells[row][col])
+    
+    cells=updated_cells
+    
 
 
 
@@ -94,6 +129,7 @@ if __name__=='__main__':
     cell_width=560
     size=0
     selected = -1
+    selected_game=-1
     game_started = False
 
     draw_background()
@@ -113,15 +149,16 @@ if __name__=='__main__':
         for event in pygame.event.get():
             if (event.type == pygame.QUIT or (event.type==pygame.KEYDOWN and event.key==pygame.K_ESCAPE)):
                 run = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pygame.MOUSEBUTTONDOWN or pygame.mouse.get_pressed()[0]:
                 x,y=pygame.mouse.get_pos()
-                if(not(game_started) and cell_width!=560 and x>=20 and x<=580 and y>=20 and y<=580):
-                    draw_cell(x,y,RED)
+                if(not(game_started) and cell_width!=560 and x>=20 and x<=560 and y>=20 and y<=560):
+                    draw_cell(x,y,WHITE)
                 else:
                     for i in range (len(buttons)):
                         if(x>=buttons[i]['coordinates'][0] and x<=buttons[i]['coordinates'][0]+buttons[i]['coordinates'][2] and y>=buttons[i]['coordinates'][1] and y<=buttons[i]['coordinates'][1]+buttons[i]['coordinates'][3]):
                             if(i<len(buttons)-2):
                                 selected=i
+                                game_started=False
                                 draw_background()
                                 draw_buttons()
                                 cell_width, size=get_cell_size()
@@ -132,19 +169,25 @@ if __name__=='__main__':
                             elif(i==3):
                                 print("start")
                                 print(selected)
-                                if selected!=-1:
-                                    draw_buttons()
+                                draw_buttons()
+                                if game_started==False:
+                                    selected_game=selected
+                                    game_started=True
                             elif(i==4):
                                 print("stop")
                                 draw_buttons()
+
+                                game_started=False
                     else:
                         selected=-1
                         draw_buttons()
 
 
-
-            if (event.type == pygame.KEYDOWN):
-                pass
+        if game_started:
+            update_cells()
+            time.sleep(0.3)
+            # if (event.type == pygame.KEYDOWN):
+            #     pass
 
 
         pygame.display.flip()
